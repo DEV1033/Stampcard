@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+@theme {
+  /* Geist from Google Fonts (linked in index.html). */
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  /* Averia Serif Libre from Google Fonts (linked in index.html). */
+  --font-display: "Averia Serif Libre", Georgia, "Times New Roman", serif;
+  /* Subtle grey used for the app surface. */
+  --color-surface: #f5f5f5;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: #171717;
+  font-family: var(--font-sans);
+  font-weight: 600; /* semibold throughout the UI */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display text (Averia Serif Libre) stays regular even though the UI
+   default is semibold. In the base layer so a utility like font-bold can
+   still override it. */
+@layer base {
+  .font-display {
+    font-weight: 400;
+  }
+}
+
+/* Apple-style frosted glass: blurred, slightly saturated backdrop, a bright
+   top edge and soft inner/outer shadows so it reads as a raised pane. */
+.glass-button,
+.glass-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.28));
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.glass-button {
+  transition:
+    scale 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+/* `scale` (not transform) so it doesn't clash with Tailwind's translate. */
+.glass-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.4));
+  scale: 1.05;
+}
+.glass-button:active:not(:disabled) {
+  scale: 0.96;
+}
+.glass-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Raised dark camera key with a bevel, pressed in when active. */
+.cam-key {
+  background: linear-gradient(180deg, #3a3a3c, #232325);
+  box-shadow:
+    0 0 0 2px #111112,
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.cam-key:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 0 0 2px #111112,
+    0 1px 1px rgba(0, 0, 0, 0.6),
+    inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Drop shadow for a pasted stamp. Goes on the stamp's parent (a mask would
+   clip a shadow on the stamp itself). Scales with the cell like the stamp,
+   and matches the contact + ambient shadow drawn by the WebGL effect. */
+.stamp-shadow {
+  /* Values were tuned for --sf 0.7; they scale with the stamp. */
+  --u: calc(1cqw * var(--sf, 0.7) / 0.7);
+  filter: drop-shadow(0 calc(0.6 * var(--u)) calc(0.7 * var(--u)) rgba(0, 0, 0, 0.16))
+    drop-shadow(0 calc(3.75 * var(--u)) calc(5 * var(--u)) rgba(0, 0, 0, 0.13));
+}
+
+/* --sf: the share of its cell's width a grid stamp fills. Bigger on phones
+   so stamps are larger and closer together. The WebGL paste overlay reads
+   it too, so everything stays aligned. */
+.stamp-cell {
+  --sf: 0.7;
+}
+@media (max-width: 767px) {
+  .stamp-cell {
+    --sf: 0.8;
+  }
+}
+
+/* Postage-stamp perforated edge, sized from its grid cell (an @container).
+   The stamp is --sf (default 70%) of the cell wide and 7:9. Holes sit 7
+   across and 9 down, centred on the edges; margin and hole size scale with
+   it. Same proportions as the WebGL stamp (112×144, 9px margin, 4.5px holes
+   every 16px), so the two line up exactly. */
+.stamp-thumb,
+.stamp-shimmer,
+.stamp-glare {
+  --sw: calc(var(--sf, 0.7) * 100cqw); /* stamp width */
+  --sp: calc(var(--sw) / 7); /* hole spacing: 7 across, 9 down */
+  padding: calc(var(--sw) * 9 / 112);
+  -webkit-mask:
+    radial-gradient(circle calc(var(--sw) * 4.5 / 112), #0000 98%, #000)
+      calc(var(--sp) / -2) calc(var(--sp) / -2) / var(--sp) var(--sp) repeat,
+    linear-gradient(#000 0 0) content-box;
+  mask:
+    radial-gradient(circle calc(var(--sw) * 4.5 / 112), #0000 98%, #000)
+      calc(var(--sp) / -2) calc(var(--sp) / -2) / var(--sp) var(--sp) repeat,
+    linear-gradient(#000 0 0) content-box;
+}
+
+.stamp-thumb {
+  width: var(--sw);
+  height: calc(var(--sw) * 9 / 7);
+  background: #fffefb;
+}
+
+/* Glare that follows the 3D tilt (background set from JS), clipped to the
+   stamp's perforated outline. */
+.stamp-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Soft light band sweeping across a pasted stamp, repeating every 1.5s.
+   Sits on top of the stamp, clipped to the same perforated outline, and
+   travels bottom-left → top-right like the paste itself. */
+.stamp-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+      to top right,
+      transparent 38%,
+      rgba(255, 255, 255, 0.22) 50%,
+      transparent 62%
+    )
+    no-repeat;
+  background-size: 300% 300%;
+  animation: stamp-shimmer 1.5s ease-in-out infinite;
+}
+
+/* The band starts fully off the stamp past the bottom-left corner, sweeps
+   across in ~1s, exits past the top-right corner, then rests until the next
+   1.5s cycle. */
+@keyframes stamp-shimmer {
+  0% {
+    background-position: 100% 0%;
+  }
+  70%,
+  100% {
+    background-position: 0% 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-shimmer {
+    display: none;
+  }
+}
