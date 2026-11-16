@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'framer-motion'
-import { StickerScene } from '../stampcard-effect/StickerScene.js'
+import { StickerScene } from './StickerScene.js'
 
 // Plays the WebGL "stamp being stuck down" effect over a tile's thumbnail
 // area, then calls onDone so the tile can show its plain <img> again.

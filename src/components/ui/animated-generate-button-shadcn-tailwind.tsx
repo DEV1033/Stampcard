@@ -94,11 +94,12 @@ export default function AnimatedGenerateButton({
           ></path>
         </svg>
         )}
+        {/* Both labels share one grid cell, so the button fits the longer one. */}
         {!hideLabel && (
-        <div className="ui-anim-txt-wrapper relative flex min-w-[6.4em] items-center">
+        <div className="ui-anim-txt-wrapper relative grid items-center">
           <div
             className={clsx(
-              "ui-anim-txt-1 absolute",
+              "ui-anim-txt-1 col-start-1 row-start-1 whitespace-nowrap",
               generating ? "opacity-0" : "animate-[ui-appear_1s_ease-in-out_forwards]"
             )}
           >
@@ -110,7 +111,7 @@ export default function AnimatedGenerateButton({
           </div>
           <div
             className={clsx(
-              "ui-anim-txt-2 absolute",
+              "ui-anim-txt-2 col-start-1 row-start-1 whitespace-nowrap",
               generating ? "opacity-100" : "opacity-0"
             )}
           >

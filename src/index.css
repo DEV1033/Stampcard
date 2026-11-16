@@ -1,83 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  /* Geist from Google Fonts (linked in index.html). */
+  /* Geist and Averia Serif Libre from Google Fonts (linked in index.html). */
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  /* Averia Serif Libre from Google Fonts (linked in index.html). */
   --font-display: "Averia Serif Libre", Georgia, "Times New Roman", serif;
-  /* Subtle grey used for the app surface. */
-  --color-surface: #f5f5f5;
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-ink: #0b1b2b;
+  --color-paper: #f8fbff;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Selected works: VyanEx screens drift left; the list is doubled so it loops. */
+@keyframes works-marquee {
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 body {
   margin: 0;
-  background: var(--color-surface);
-  color: #171717;
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
-  font-weight: 600; /* semibold throughout the UI */
   -webkit-font-smoothing: antialiased;
 }
 
-/* Display text (Averia Serif Libre) stays regular even though the UI
-   default is semibold. In the base layer so a utility like font-bold can
-   still override it. */
+/* Display text stays regular weight. */
 @layer base {
   .font-display {
     font-weight: 400;
   }
-}
-
-/* Apple-style frosted glass: blurred, slightly saturated backdrop, a bright
-   top edge and soft inner/outer shadows so it reads as a raised pane. */
-.glass-button,
-.glass-bar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.28));
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  backdrop-filter: blur(18px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.06),
-    0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.glass-button {
-  transition:
-    scale 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease,
-    opacity 0.2s ease;
-}
-/* `scale` (not transform) so it doesn't clash with Tailwind's translate. */
-.glass-button:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.4));
-  scale: 1.05;
-}
-.glass-button:active:not(:disabled) {
-  scale: 0.96;
-}
-.glass-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Raised dark camera key with a bevel, pressed in when active. */
-.cam-key {
-  background: linear-gradient(180deg, #3a3a3c, #232325);
-  box-shadow:
-    0 0 0 2px #111112,
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.4);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-.cam-key:active {
-  transform: translateY(1px);
-  box-shadow:
-    0 0 0 2px #111112,
-    0 1px 1px rgba(0, 0, 0, 0.6),
-    inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Drop shadow for a pasted stamp. Goes on the stamp's parent (a mask would
