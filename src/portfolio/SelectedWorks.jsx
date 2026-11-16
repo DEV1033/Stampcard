@@ -70,11 +70,11 @@ function WorkRow({ work, index }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.25 }}
       transition={{ duration: 0.8, ease: EASE }}
-      className="grid items-center gap-8 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] md:gap-14"
+      className="grid grid-cols-1 items-center gap-8 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] md:gap-14"
     >
       {/* Media */}
       <div
-        className={`aspect-[16/11] rounded-[20px] bg-[linear-gradient(135deg,#eaf5ff,#d7ecff)] p-3 ring-1 ring-sky-100 md:p-4 ${
+        className={`aspect-[16/11] min-w-0 rounded-[20px] bg-[linear-gradient(135deg,#eaf5ff,#d7ecff)] p-3 ring-1 ring-sky-100 md:p-4 ${
           flip ? 'md:order-2' : ''
         }`}
       >
@@ -86,7 +86,7 @@ function WorkRow({ work, index }) {
       </div>
 
       {/* Details */}
-      <div className={flip ? 'md:order-1' : ''}>
+      <div className={`min-w-0 ${flip ? "md:order-1" : ""}`}>
         <p className="font-mono text-[12px] tracking-wide text-slate-500">
           {String(index + 1).padStart(2, '0')} · {work.meta}
         </p>
@@ -155,7 +155,7 @@ export default function SelectedWorks() {
           <p className="font-mono text-[12px] tracking-wide text-slate-500">(01) — Selected works</p>
           <h2 className="mt-3 font-display text-[40px] leading-[1.05] md:text-[56px]">Selected works</h2>
         </div>
-        <span className="font-mono text-[13px] text-slate-500">{String(WORKS.length).padStart(2, '0')} projects</span>
+        <span className="shrink-0 whitespace-nowrap font-mono text-[13px] text-slate-500">{String(WORKS.length).padStart(2, '0')} projects</span>
       </motion.header>
 
       <div className="flex flex-col gap-24 md:gap-32">

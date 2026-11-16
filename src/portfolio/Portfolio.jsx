@@ -17,7 +17,10 @@ const EASE = [0.22, 1, 0.36, 1]
 const SKY_HUE = 205 // light-blue glow on the CTAs, matching the pixels
 
 export default function Portfolio() {
-  const [stage, setStage] = useState('loading') // loading | reveal | gone
+  // `?skip-intro` in the address skips the preloader (handy for testing).
+  const [stage, setStage] = useState(() =>
+    new URLSearchParams(window.location.search).has('skip-intro') ? 'gone' : 'loading',
+  ) // loading | reveal | gone
   const reduceMotion = useReducedMotion()
   const show = stage !== 'loading'
 
@@ -73,9 +76,9 @@ export default function Portfolio() {
       </motion.header>
 
       <main className="flex flex-1 flex-col">
-        <section className="grid items-center gap-6 px-6 pb-10 pt-[8vh] md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:gap-10 md:px-12 md:pb-14 md:pt-[10vh] lg:px-[120px]">
+        <section className="grid grid-cols-1 items-center gap-6 px-6 pb-10 pt-[8vh] md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:gap-10 md:px-12 md:pb-14 md:pt-[10vh] lg:px-[120px]">
           {/* Heading + intro + CTAs */}
-          <div className="flex flex-col items-start text-left">
+          <div className="flex min-w-0 flex-col items-start text-left">
           <h1 className="max-w-[16ch] font-display text-[44px] leading-[1.05] tracking-[-0.015em] md:text-[64px]">
             {HEADING.map((word, i) => (
               <span key={i} className="inline-block overflow-hidden pb-[0.08em] align-bottom">
@@ -98,9 +101,10 @@ export default function Portfolio() {
             college, when one question wouldn’t leave me alone: how are these interfaces made?
           </motion.p>
 
-          <motion.div {...fadeUp(0.7)} className="mt-8 flex flex-wrap items-center justify-start gap-4">
+          <motion.div {...fadeUp(0.7)} className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
             <AnimatedGenerateButton
-              className="text-[15px] font-semibold"
+              className="w-full text-[15px] font-semibold sm:w-auto"
+              buttonClassName="w-full sm:w-auto"
               labelIdle="View my work"
               labelActive="Opening…"
               highlightHueDeg={SKY_HUE}
@@ -108,7 +112,8 @@ export default function Portfolio() {
               onClick={() => (window.location.hash = 'work')}
             />
             <AnimatedGenerateButton
-              className="text-[15px] font-semibold"
+              className="w-full text-[15px] font-semibold sm:w-auto"
+              buttonClassName="w-full sm:w-auto"
               icon={<Mail className="size-5" strokeWidth={2} />}
               labelIdle="Get in touch"
               labelActive="Say hello"
