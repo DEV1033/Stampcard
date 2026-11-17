@@ -5,7 +5,7 @@ const TICK = 'rgba(11, 27, 43, 0.16)'
 
 // Vertical design-tool ruler fixed to the left or right edge of the screen:
 // small ticks every 10px, longer every 50px, Fira Code labels every 100px.
-export default function Ruler({ side = 'left', show = true }) {
+export default function Ruler({ side = 'left', show = true, offset = 0 }) {
   const [height, setHeight] = useState(() => window.innerHeight)
 
   useEffect(() => {
@@ -23,12 +23,13 @@ export default function Ruler({ side = 'left', show = true }) {
     <motion.div
       aria-hidden="true"
       className={`pointer-events-none fixed inset-y-0 z-0 hidden w-7 md:block ${
-        left ? 'left-0 border-r' : 'right-0 border-l'
+        left ? 'border-r' : 'border-l'
       } border-ink/[0.06]`}
       initial={{ opacity: 0 }}
       animate={show ? { opacity: 1 } : undefined}
       transition={{ duration: 0.8 }}
       style={{
+        [left ? 'left' : 'right']: offset,
         backgroundImage: [
           // Long tick every 50px
           `repeating-linear-gradient(to bottom, ${TICK} 0 1px, transparent 1px 50px)`,

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { animate, motion, useReducedMotion } from 'framer-motion'
 import { createPixelLoader } from './pixelShaders.js'
+import { loadSettings } from './settings.js'
 
 const LOAD_TIME = 2.2 // s for the counter to reach 100
 
-// Pixel preloader: light-blue pixels light up as a counter runs 0 → 100,
+// Pixel preloader: pixels in the saved tile colour light up as a counter runs 0 → 100,
 // then the pixels switch off in a scattered wave to reveal the page.
 export default function Preloader({ onDone }) {
   const canvasRef = useRef(null)
@@ -16,7 +17,7 @@ export default function Preloader({ onDone }) {
 
   useEffect(() => {
     const canvas = canvasRef.current
-    const loader = createPixelLoader(canvas, { cell: window.innerWidth < 640 ? 18 : 26 })
+    const loader = createPixelLoader(canvas, { cell: window.innerWidth < 640 ? 18 : 26, tint: loadSettings().tile })
     const u = loader.uniforms
     loader.resize(canvas.clientWidth, canvas.clientHeight)
     const ro = new ResizeObserver(([e]) => loader.resize(e.contentRect.width, e.contentRect.height))

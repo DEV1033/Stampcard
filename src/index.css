@@ -7,7 +7,7 @@
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-ink: #0b1b2b;
-  --color-paper: #f8fbff;
+  --color-paper: #ffffff;
 }
 
 html {
@@ -16,13 +16,6 @@ html {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-}
-
-/* Selected works: VyanEx screens drift left; the list is doubled so it loops. */
-@keyframes works-marquee {
-  to {
-    transform: translateX(-50%);
   }
 }
 
@@ -38,99 +31,5 @@ body {
 @layer base {
   .font-display {
     font-weight: 400;
-  }
-}
-
-/* Drop shadow for a pasted stamp. Goes on the stamp's parent (a mask would
-   clip a shadow on the stamp itself). Scales with the cell like the stamp,
-   and matches the contact + ambient shadow drawn by the WebGL effect. */
-.stamp-shadow {
-  /* Values were tuned for --sf 0.7; they scale with the stamp. */
-  --u: calc(1cqw * var(--sf, 0.7) / 0.7);
-  filter: drop-shadow(0 calc(0.6 * var(--u)) calc(0.7 * var(--u)) rgba(0, 0, 0, 0.16))
-    drop-shadow(0 calc(3.75 * var(--u)) calc(5 * var(--u)) rgba(0, 0, 0, 0.13));
-}
-
-/* --sf: the share of its cell's width a grid stamp fills. Bigger on phones
-   so stamps are larger and closer together. The WebGL paste overlay reads
-   it too, so everything stays aligned. */
-.stamp-cell {
-  --sf: 0.7;
-}
-@media (max-width: 767px) {
-  .stamp-cell {
-    --sf: 0.8;
-  }
-}
-
-/* Postage-stamp perforated edge, sized from its grid cell (an @container).
-   The stamp is --sf (default 70%) of the cell wide and 7:9. Holes sit 7
-   across and 9 down, centred on the edges; margin and hole size scale with
-   it. Same proportions as the WebGL stamp (112×144, 9px margin, 4.5px holes
-   every 16px), so the two line up exactly. */
-.stamp-thumb,
-.stamp-shimmer,
-.stamp-glare {
-  --sw: calc(var(--sf, 0.7) * 100cqw); /* stamp width */
-  --sp: calc(var(--sw) / 7); /* hole spacing: 7 across, 9 down */
-  padding: calc(var(--sw) * 9 / 112);
-  -webkit-mask:
-    radial-gradient(circle calc(var(--sw) * 4.5 / 112), #0000 98%, #000)
-      calc(var(--sp) / -2) calc(var(--sp) / -2) / var(--sp) var(--sp) repeat,
-    linear-gradient(#000 0 0) content-box;
-  mask:
-    radial-gradient(circle calc(var(--sw) * 4.5 / 112), #0000 98%, #000)
-      calc(var(--sp) / -2) calc(var(--sp) / -2) / var(--sp) var(--sp) repeat,
-    linear-gradient(#000 0 0) content-box;
-}
-
-.stamp-thumb {
-  width: var(--sw);
-  height: calc(var(--sw) * 9 / 7);
-  background: #fffefb;
-}
-
-/* Glare that follows the 3D tilt (background set from JS), clipped to the
-   stamp's perforated outline. */
-.stamp-glare {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-/* Soft light band sweeping across a pasted stamp, repeating every 1.5s.
-   Sits on top of the stamp, clipped to the same perforated outline, and
-   travels bottom-left → top-right like the paste itself. */
-.stamp-shimmer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-      to top right,
-      transparent 38%,
-      rgba(255, 255, 255, 0.22) 50%,
-      transparent 62%
-    )
-    no-repeat;
-  background-size: 300% 300%;
-  animation: stamp-shimmer 1.5s ease-in-out infinite;
-}
-
-/* The band starts fully off the stamp past the bottom-left corner, sweeps
-   across in ~1s, exits past the top-right corner, then rests until the next
-   1.5s cycle. */
-@keyframes stamp-shimmer {
-  0% {
-    background-position: 100% 0%;
-  }
-  70%,
-  100% {
-    background-position: 0% 100%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stamp-shimmer {
-    display: none;
   }
 }

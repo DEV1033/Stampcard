@@ -3,6 +3,7 @@ import * as THREE from 'three'
 // Shared GLSL helpers: hashing, value noise / fbm, and a 4×4 Bayer matrix
 // for ordered dithering (what gives the pixels their crisp, pixel-art steps).
 const COMMON = /* glsl */ `
+  uniform vec3 uTint; // strongest tile colour; lighter shades are mixed towards white
   float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
   float noise(vec2 p) {
@@ -27,18 +28,15 @@ const COMMON = /* glsl */ `
   float bayer2(vec2 a) { a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }
   float bayer4(vec2 a) { return bayer2(0.5 * a) * 0.25 + bayer2(a); }
 
-  // Light-blue palette, from paper to sky.
+  // Palette from the white page to the tile colour. With the default sky
+  // tint this gives #ffffff, #e3f2ff, #bfe2ff, #93ccff, #6bb8ff.
   vec3 palette(float level) {
-    vec3 c0 = vec3(0.973, 0.984, 1.0);   // #f8fbff
-    vec3 c1 = vec3(0.890, 0.949, 1.0);   // #e3f2ff
-    vec3 c2 = vec3(0.749, 0.886, 1.0);   // #bfe2ff
-    vec3 c3 = vec3(0.576, 0.800, 1.0);   // #93ccff
-    vec3 c4 = vec3(0.420, 0.722, 1.0);   // #6bb8ff
-    if (level < 0.5) return c0;
-    if (level < 1.5) return c1;
-    if (level < 2.5) return c2;
-    if (level < 3.5) return c3;
-    return c4;
+    vec3 white = vec3(1.0);
+    if (level < 0.5) return white;
+    if (level < 1.5) return mix(white, uTint, 0.19);
+    if (level < 2.5) return mix(white, uTint, 0.43);
+    if (level < 3.5) return mix(white, uTint, 0.73);
+    return uTint;
   }
 `
 
@@ -58,26 +56,31 @@ const FIELD_FRAG = /* glsl */ `
   uniform float uCell;    // pixel size in CSS px
   uniform float uIntro;   // 0..1, pixels switching on
   varying vec2 vUv;
-  ${COMMON}
-
   // How subtle the background is: share of pixels drawn, and how strongly
-  // each pixel shows against the white (1 = full colour).
-  const float SUBTLETY = 0.6;
-  const float PIXEL_STRENGTH = 0.75;
+  // each pixel shows against the white (1 = full colour). Set per screen
+  // size from JS (stronger on phones, where the pixels are smaller).
+  uniform float uSubtlety;
+  uniform float uStrength;
+  uniform float uNoiseScale; // size of the cloud blobs, in CSS px
+  uniform float uFloor;      // minimum density before the top-to-bottom ramp
+  ${COMMON}
 
   void main() {
     vec2 px = vUv * uRes;
     vec2 cell = floor(px / uCell);
     vec2 cuv = (cell + 0.5) * uCell / uRes;
-    float aspect = uRes.x / uRes.y;
-
-    float n = fbm(vec2(cuv.x * aspect, cuv.y) * 2.4 + vec2(uTime * 0.035, -uTime * 0.022));
+    // Cloud blobs sized in screen pixels (not stretched to the screen's
+    // shape), so a tall phone gets evenly spread blobs instead of one giant one.
+    vec2 cellPx = (cell + 0.5) * uCell;
+    float n = fbm(cellPx / uNoiseScale + vec2(uTime * 0.035, -uTime * 0.022));
     n = smoothstep(0.32, 0.78, n);
+    // A light floor so the lower part is never empty, whatever the cloud does.
+    n = max(n, uFloor);
 
     // Linear ramp: no pixels at the top, full density at the bottom.
     float fall = clamp(1.0 - cuv.y, 0.0, 1.0);
     // Kept subtle: fewer pixels overall.
-    float v = n * fall * SUBTLETY;
+    float v = n * fall * uSubtlety;
 
     // Ordered dithering into the lighter shades only (the darkest is skipped).
     float level = min(floor(clamp(v, 0.0, 1.0) * 4.0 + bayer4(cell)), 3.0);
@@ -89,7 +92,7 @@ const FIELD_FRAG = /* glsl */ `
     vec2 f = fract(px / uCell);
     float inCell = step(0.06, f.x) * step(f.x, 0.94) * step(0.06, f.y) * step(f.y, 0.94);
     // Soften every pixel a little towards the background.
-    vec3 col = mix(palette(0.0), palette(level), inCell * PIXEL_STRENGTH);
+    vec3 col = mix(palette(0.0), palette(level), inCell * uStrength);
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -157,18 +160,34 @@ function makeQuadRenderer(canvas, fragmentShader, uniforms, { alpha = false } = 
   }
 }
 
-export function createPixelField(canvas, { cell = 14 } = {}) {
+export const DEFAULT_TINT = '#6bb8ff'
+
+// '#rrggbb' → raw 0..1 RGB, written straight into a vec3 uniform. (THREE.Color
+// would convert to linear space, but these shaders output sRGB directly.)
+export function setTint(vec, hex) {
+  const n = parseInt(hex.replace('#', ''), 16)
+  vec.set(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255)
+  return vec
+}
+
+export function createPixelField(canvas, { cell = 14, subtlety = 0.6, strength = 0.75, tint = DEFAULT_TINT } = {}) {
   const uniforms = {
+    uTint: { value: setTint(new THREE.Vector3(), tint) },
     uRes: { value: new THREE.Vector2(1, 1) },
     uTime: { value: 0 },
     uCell: { value: cell },
     uIntro: { value: 0 },
+    uSubtlety: { value: subtlety },
+    uStrength: { value: strength },
+    uNoiseScale: { value: 375 },
+    uFloor: { value: 0.15 },
   }
   return { uniforms, ...makeQuadRenderer(canvas, FIELD_FRAG, uniforms) }
 }
 
-export function createPixelLoader(canvas, { cell = 26 } = {}) {
+export function createPixelLoader(canvas, { cell = 26, tint = DEFAULT_TINT } = {}) {
   const uniforms = {
+    uTint: { value: setTint(new THREE.Vector3(), tint) },
     uRes: { value: new THREE.Vector2(1, 1) },
     uTime: { value: 0 },
     uCell: { value: cell },

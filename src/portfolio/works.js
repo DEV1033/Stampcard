@@ -37,19 +37,4 @@ export const WORKS = [
     ],
     tags: ['Internal Tool', 'Early Stage Startup', '0 → 1'],
   },
-  {
-    id: 'vyanex',
-    title: 'VyanEx',
-    caption: 'Clinic & check-in apps, VyanEx',
-    meta: 'Clinic & check-in apps',
-    screens: [
-      { src: `${MEDIA}screen-1.webp`, alt: 'VyanEx landing screen' },
-      { src: `${MEDIA}screen-5.webp`, alt: 'Check-in timeline screen (light)' },
-      { src: `${MEDIA}screen-6.webp`, alt: 'Check-in timeline screen (dark)' },
-      { src: `${MEDIA}screen-2.webp`, alt: 'VyanEx patient records screen' },
-      { src: `${MEDIA}screen-7.webp`, alt: 'Check-in screen' },
-      { src: `${MEDIA}screen-3.webp`, alt: 'VyanEx team management screen' },
-      { src: `${MEDIA}screen-4.webp`, alt: 'VyanEx dashboard screen' },
-    ],
-  },
 ]
