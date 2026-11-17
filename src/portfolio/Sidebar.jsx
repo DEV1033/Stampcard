@@ -47,7 +47,7 @@ export default function Sidebar({ active, motionProps, settings, onSettingsChang
     <motion.aside
       {...motionProps}
       style={{ width: SIDEBAR_WIDTH }}
-      className="fixed inset-y-0 left-0 z-30 hidden flex-col gap-8 border-r border-ink/[0.08] bg-paper/75 p-4 backdrop-blur-md md:flex overflow-y-auto"
+      className="fixed inset-y-0 left-0 z-30 hidden flex-col gap-8 border-r border-ink/[0.08] bg-paper/75 p-4 backdrop-blur-md lg:flex overflow-y-auto"
     >
       <div className="flex h-[44px] items-center px-3">
         <Logo />

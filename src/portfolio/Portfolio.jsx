@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Mail, Settings } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import AnimatedGenerateButton from '@/components/ui/animated-generate-button-shadcn-tailwind'
 import Preloader from './Preloader.jsx'
 import PixelField from './PixelField.jsx'
@@ -9,13 +9,14 @@ import { useSettings } from './settings.js'
 import Ruler from './Ruler.jsx'
 import SelectedWorks from './SelectedWorks.jsx'
 import Sidebar, { AvailabilityPill, Logo, SIDEBAR_WIDTH } from './Sidebar.jsx'
+import MobileNav from './MobileNav.jsx'
 import AboutPage from './AboutPage.jsx'
-import GrainTransition, { COVER_MS } from './GrainTransition.jsx'
+import PageTurn, { HEADER_H } from './PageTurn.jsx'
+import { captureRegion } from './snapshot.js'
 
 const HEADING = ['Designing', 'product', 'that', 'makes', 'it', 'feel', 'easy']
 const EASE = [0.22, 1, 0.36, 1]
 const SKY_HUE = 205 // light-blue glow on the CTAs, matching the pixels
-const HEADER_H = 72 // desktop header bar height (px)
 // Header title: today's day and date, e.g. "Tuesday, 17 November 2026".
 const DAY_FMT = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -23,31 +24,47 @@ const DAY_FMT = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'nume
 // (including '#work', '#contact') belongs to the home page.
 const pageFromHash = (hash) => (hash === '#about' ? 'about' : 'home')
 
-// Page switching with a grainy blur: cover the screen, swap the page
-// underneath, then clear. Also runs for the browser's back/forward buttons.
-function usePages() {
+// Page switching with a 3D page turn: snapshot the current page, swap to
+// the new one underneath, then curl the snapshot away like a sheet of paper.
+// Also runs for the browser's back/forward buttons. Without motion (or if
+// the snapshot fails) the page just switches.
+function usePages(contentRef) {
   const [page, setPage] = useState(() => pageFromHash(window.location.hash))
-  const [covering, setCovering] = useState(false)
+  const [turn, setTurn] = useState(null) // { n, image, dir }
   const pageRef = useRef(page)
-  const timers = useRef([])
+  const scrollTo = useRef(null) // hash to land on once the new page renders
 
-  const transitionTo = useCallback((target, hash) => {
-    timers.current.forEach(clearTimeout)
-    setCovering(true)
-    timers.current = [
-      setTimeout(() => {
-        pageRef.current = target
-        setPage(target)
-        // Land at the top of the new page, or on the section the link names.
-        requestAnimationFrame(() => {
-          const el = hash && hash !== '#about' ? document.getElementById(hash.slice(1)) : null
-          if (el) el.scrollIntoView({ behavior: 'instant' })
-          else window.scrollTo({ top: 0, behavior: 'instant' })
-        })
-        timers.current.push(setTimeout(() => setCovering(false), 120))
-      }, COVER_MS),
-    ]
-  }, [])
+  const transitionTo = useCallback(
+    async (target, hash) => {
+      pageRef.current = target
+      let image = null
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && contentRef.current) {
+        try {
+          image = await captureRegion(contentRef.current)
+        } catch (err) {
+          console.warn('Page snapshot failed; switching without the page turn.', err)
+        }
+      }
+      if (pageRef.current !== target) return // another click came in meanwhile
+      scrollTo.current = hash
+      setPage(target)
+      setTurn(image ? { n: Date.now(), image, dir: target === 'about' ? 'forward' : 'back' } : null)
+    },
+    [contentRef],
+  )
+
+  // Before paint: land at the top of the new page, or on the section the link
+  // names (the page-turn sheet is covering it at this point).
+  useLayoutEffect(() => {
+    const hash = scrollTo.current
+    if (hash === null) return
+    scrollTo.current = null
+    const el = hash && hash !== '#about' ? document.getElementById(hash.slice(1)) : null
+    if (el) el.scrollIntoView({ behavior: 'instant' })
+    else window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [page])
+
+  const onTurnDone = useCallback(() => setTurn(null), [])
 
   // Sidebar link clicks: links within the current page just scroll as usual.
   const navigate = useCallback(
@@ -67,13 +84,10 @@ function usePages() {
       if (target !== pageRef.current) transitionTo(target, window.location.hash)
     }
     window.addEventListener('popstate', onPop)
-    return () => {
-      window.removeEventListener('popstate', onPop)
-      timers.current.forEach(clearTimeout)
-    }
+    return () => window.removeEventListener('popstate', onPop)
   }, [transitionTo])
 
-  return { page, covering, navigate }
+  return { page, turn, onTurnDone, navigate }
 }
 
 export default function Portfolio() {
@@ -84,7 +98,8 @@ export default function Portfolio() {
   const reduceMotion = useReducedMotion()
   const show = stage !== 'loading'
   const [settings, updateSettings] = useSettings()
-  const { page, covering, navigate } = usePages()
+  const contentRef = useRef(null)
+  const { page, turn, onTurnDone, navigate } = usePages(contentRef)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
 
@@ -107,6 +122,8 @@ export default function Portfolio() {
         '--fs-body': `${settings.body}px`,
         '--fs-work-title': `${settings.workTitle}px`,
         '--tile': settings.tile,
+        '--sidebar-w': `${SIDEBAR_WIDTH}px`,
+        '--header-h': `${HEADER_H}px`,
       }}
     >
       {/* Light pixels building up along the bottom of the screen, across the whole
@@ -114,7 +131,8 @@ export default function Portfolio() {
           part. Fixed, so it stays put while the work scrolls over it. */}
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-[45vh] md:left-[240px] [mask-image:linear-gradient(to_top,black_60%,transparent)]"
+        data-pixel-field
+        className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-[45vh] lg:left-[240px] [mask-image:linear-gradient(to_top,black_60%,transparent)]"
         initial={{ opacity: 0 }}
         animate={show ? { opacity: 1 } : undefined}
         transition={{ duration: 0.8, delay: 0.6 }}
@@ -133,27 +151,23 @@ export default function Portfolio() {
         onNavigate={navigate}
       />
 
-      {/* Mobile header (the sidebar is hidden on small screens). */}
-      <motion.header {...fadeUp(0.1)} className="flex items-center justify-between px-6 py-6 md:hidden">
+      {/* Phone/tablet header (the sidebar is hidden below lg). */}
+      <motion.header {...fadeUp(0.1)} className="flex items-center justify-between px-6 py-6 md:px-12 lg:hidden">
         <Logo />
-        <div className="flex items-center gap-2">
-          <AvailabilityPill />
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-            aria-haspopup="dialog"
-            className="grid size-9 place-items-center rounded-full border border-ink/10 bg-white/60 text-ink/70"
-          >
-            <Settings className="size-[18px]" strokeWidth={1.75} />
-          </button>
-        </div>
+        <AvailabilityPill />
       </motion.header>
 
-      <div className="md:pl-[var(--sidebar-w)]" style={{ '--sidebar-w': `${SIDEBAR_WIDTH}px`, '--header-h': `${HEADER_H}px` }}>
+      <MobileNav
+        active={page === 'about' ? 'about' : 'work'}
+        onNavigate={navigate}
+        onSettings={() => setSettingsOpen(true)}
+        motionProps={fadeUp(0.3)}
+      />
+
+      <div className="lg:pl-[var(--sidebar-w)]">
       <motion.header
         {...fadeUp(0.15)}
-        className="sticky top-0 z-20 hidden h-[var(--header-h)] items-center justify-between gap-4 border-b border-ink/[0.08] bg-paper/70 px-8 backdrop-blur-md md:flex lg:px-12"
+        className="sticky top-0 z-20 hidden h-[var(--header-h)] items-center justify-between gap-4 border-b border-ink/[0.08] bg-paper/70 px-8 backdrop-blur-md lg:flex lg:px-12"
       >
         <h2 className="min-w-0 truncate font-display text-[24px] leading-tight text-ink">
           {DAY_FMT.format(new Date())}
@@ -172,6 +186,7 @@ export default function Portfolio() {
 
       {/* Two columns on desktop: the heading stays pinned on the left while
           the work scrolls on the right. Stacked on smaller screens. */}
+      <div ref={contentRef}>
       {page === 'about' ? (
         <AboutPage />
       ) : (
@@ -230,6 +245,7 @@ export default function Portfolio() {
       </main>
       )}
       </div>
+      </div>
 
       <Ruler side="left" show={show} offset={SIDEBAR_WIDTH} />
       <Ruler side="right" show={show} />
@@ -240,7 +256,7 @@ export default function Portfolio() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>{covering && <GrainTransition />}</AnimatePresence>
+      {turn && <PageTurn key={turn.n} image={turn.image} dir={turn.dir} onDone={onTurnDone} />}
 
       {stage !== 'gone' && <Preloader onDone={setStage} />}
     </div>

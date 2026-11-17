@@ -5,7 +5,7 @@ import { WORKS } from './works.js'
 const EASE = [0.22, 1, 0.36, 1]
 
 // Muted looping video that only plays while on screen.
-function AutoVideo({ src, poster, label }) {
+function AutoVideo({ src, poster, label, tone }) {
   const ref = useRef(null)
   const reduceMotion = useReducedMotion()
 
@@ -31,6 +31,7 @@ function AutoVideo({ src, poster, label }) {
       preload="metadata"
       controls={reduceMotion}
       aria-label={label}
+      data-tone={tone}
       className="block aspect-video h-auto w-full rounded-[10px] bg-white object-cover shadow-[0_12px_32px_rgba(11,27,43,0.14)]"
     />
   )
@@ -52,7 +53,7 @@ function WorkRow({ work }) {
       </div>
 
       <div className="w-full min-w-0 overflow-hidden rounded-[16px] border border-ink/[0.06] bg-white p-5 md:p-7">
-        <AutoVideo src={work.video} poster={work.poster} label={`${work.title} preview`} />
+        <AutoVideo src={work.video} poster={work.poster} label={`${work.title} preview`} tone={work.tone} />
       </div>
     </motion.article>
   )
@@ -60,7 +61,7 @@ function WorkRow({ work }) {
 
 export default function SelectedWorks() {
   return (
-    <section id="work" aria-label="Work" className="scroll-mt-8 lg:pt-12 md:scroll-mt-24">
+    <section id="work" aria-label="Work" className="scroll-mt-8 lg:pt-12 lg:scroll-mt-24">
       <div className="flex flex-col gap-16 md:gap-20">
         {WORKS.map((w) => (
           <WorkRow key={w.id} work={w} />

@@ -10,6 +10,8 @@ export const WORKS = [
     caption: 'Shopify app revamp, Trustyy',
     meta: 'Shopify app revamp · UI/UX Designer · 1 month',
     video: `${MEDIA}trustyy.mp4`,
+    // Main colour of the video; stands in for it on the page-turn snapshot.
+    tone: '#7a6c06',
     body: [
       "A revamp that reached 497 merchants in July. I redesigned Trustyy Reviews from the user's point of view. Not just a UI makeover: I spent a month rethinking the experience, simplifying flows and removing friction.",
     ],

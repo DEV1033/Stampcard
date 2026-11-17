@@ -22,7 +22,7 @@ export default function Ruler({ side = 'left', show = true, offset = 0 }) {
   return (
     <motion.div
       aria-hidden="true"
-      className={`pointer-events-none fixed inset-y-0 z-0 hidden w-7 md:block ${
+      className={`pointer-events-none fixed inset-y-0 z-0 hidden w-7 lg:block ${
         left ? 'border-r' : 'border-l'
       } border-ink/[0.06]`}
       initial={{ opacity: 0 }}

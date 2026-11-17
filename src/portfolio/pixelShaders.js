@@ -131,8 +131,15 @@ const LOADER_FRAG = /* glsl */ `
   }
 `
 
-function makeQuadRenderer(canvas, fragmentShader, uniforms, { alpha = false } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha, antialias: false, premultipliedAlpha: false })
+// `preserve` keeps the last frame readable (for drawImage), at a small cost.
+function makeQuadRenderer(canvas, fragmentShader, uniforms, { alpha = false, preserve = false } = {}) {
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    alpha,
+    antialias: false,
+    premultipliedAlpha: false,
+    preserveDrawingBuffer: preserve,
+  })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   if (alpha) renderer.setClearColor(0x000000, 0)
   const scene = new THREE.Scene()
@@ -182,7 +189,8 @@ export function createPixelField(canvas, { cell = 14, subtlety = 0.6, strength =
     uNoiseScale: { value: 375 },
     uFloor: { value: 0.15 },
   }
-  return { uniforms, ...makeQuadRenderer(canvas, FIELD_FRAG, uniforms) }
+  // Preserved so the page-turn snapshot can copy the background.
+  return { uniforms, ...makeQuadRenderer(canvas, FIELD_FRAG, uniforms, { preserve: true }) }
 }
 
 export function createPixelLoader(canvas, { cell = 26, tint = DEFAULT_TINT } = {}) {
