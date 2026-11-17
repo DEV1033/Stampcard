@@ -42,7 +42,7 @@ export function AvailabilityPill() {
 // Desktop-only app sidebar: navigation, the settings (tile colour + font
 // sizes) inline, and the status pinned to the bottom. Scrolls if it runs
 // taller than the screen.
-export default function Sidebar({ active, motionProps, settings, onSettingsChange }) {
+export default function Sidebar({ active, motionProps, settings, onSettingsChange, onNavigate }) {
   return (
     <motion.aside
       {...motionProps}
@@ -61,6 +61,7 @@ export default function Sidebar({ active, motionProps, settings, onSettingsChang
             <a
               key={id}
               href={href}
+              onClick={(e) => onNavigate?.(e, href)}
               aria-current={isActive ? 'page' : undefined}
               className={`${NAV_ITEM} ${
                 isActive

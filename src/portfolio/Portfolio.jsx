@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Mail, Settings } from 'lucide-react'
 import AnimatedGenerateButton from '@/components/ui/animated-generate-button-shadcn-tailwind'
@@ -9,6 +9,8 @@ import { useSettings } from './settings.js'
 import Ruler from './Ruler.jsx'
 import SelectedWorks from './SelectedWorks.jsx'
 import Sidebar, { AvailabilityPill, Logo, SIDEBAR_WIDTH } from './Sidebar.jsx'
+import AboutPage from './AboutPage.jsx'
+import GrainTransition, { COVER_MS } from './GrainTransition.jsx'
 
 const HEADING = ['Designing', 'product', 'that', 'makes', 'it', 'feel', 'easy']
 const EASE = [0.22, 1, 0.36, 1]
@@ -16,6 +18,63 @@ const SKY_HUE = 205 // light-blue glow on the CTAs, matching the pixels
 const HEADER_H = 72 // desktop header bar height (px)
 // Header title: today's day and date, e.g. "Tuesday, 17 November 2026".
 const DAY_FMT = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+// Pages live in the address hash: '#about' is the About page, anything else
+// (including '#work', '#contact') belongs to the home page.
+const pageFromHash = (hash) => (hash === '#about' ? 'about' : 'home')
+
+// Page switching with a grainy blur: cover the screen, swap the page
+// underneath, then clear. Also runs for the browser's back/forward buttons.
+function usePages() {
+  const [page, setPage] = useState(() => pageFromHash(window.location.hash))
+  const [covering, setCovering] = useState(false)
+  const pageRef = useRef(page)
+  const timers = useRef([])
+
+  const transitionTo = useCallback((target, hash) => {
+    timers.current.forEach(clearTimeout)
+    setCovering(true)
+    timers.current = [
+      setTimeout(() => {
+        pageRef.current = target
+        setPage(target)
+        // Land at the top of the new page, or on the section the link names.
+        requestAnimationFrame(() => {
+          const el = hash && hash !== '#about' ? document.getElementById(hash.slice(1)) : null
+          if (el) el.scrollIntoView({ behavior: 'instant' })
+          else window.scrollTo({ top: 0, behavior: 'instant' })
+        })
+        timers.current.push(setTimeout(() => setCovering(false), 120))
+      }, COVER_MS),
+    ]
+  }, [])
+
+  // Sidebar link clicks: links within the current page just scroll as usual.
+  const navigate = useCallback(
+    (e, href) => {
+      const target = pageFromHash(href)
+      if (target === pageRef.current) return
+      e.preventDefault()
+      window.history.pushState(null, '', href)
+      transitionTo(target, href)
+    },
+    [transitionTo],
+  )
+
+  useEffect(() => {
+    const onPop = () => {
+      const target = pageFromHash(window.location.hash)
+      if (target !== pageRef.current) transitionTo(target, window.location.hash)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      timers.current.forEach(clearTimeout)
+    }
+  }, [transitionTo])
+
+  return { page, covering, navigate }
+}
 
 export default function Portfolio() {
   // `?skip-intro` in the address skips the preloader (handy for testing).
@@ -25,6 +84,7 @@ export default function Portfolio() {
   const reduceMotion = useReducedMotion()
   const show = stage !== 'loading'
   const [settings, updateSettings] = useSettings()
+  const { page, covering, navigate } = usePages()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
 
@@ -65,7 +125,13 @@ export default function Portfolio() {
       </motion.div>
 
       {/* Desktop: app shell (fixed sidebar + header bar). */}
-      <Sidebar active="work" motionProps={fadeUp(0.1)} settings={settings} onSettingsChange={updateSettings} />
+      <Sidebar
+        active={page === 'about' ? 'about' : 'work'}
+        motionProps={fadeUp(0.1)}
+        settings={settings}
+        onSettingsChange={updateSettings}
+        onNavigate={navigate}
+      />
 
       {/* Mobile header (the sidebar is hidden on small screens). */}
       <motion.header {...fadeUp(0.1)} className="flex items-center justify-between px-6 py-6 md:hidden">
@@ -106,6 +172,9 @@ export default function Portfolio() {
 
       {/* Two columns on desktop: the heading stays pinned on the left while
           the work scrolls on the right. Stacked on smaller screens. */}
+      {page === 'about' ? (
+        <AboutPage />
+      ) : (
       <main className="grid grid-cols-1 gap-16 px-6 md:px-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-12 xl:px-20">
         {/* Heading + intro + CTAs (sticky on desktop) */}
         <section className="flex min-w-0 flex-col items-start pt-10 text-left lg:sticky lg:top-[var(--header-h)] lg:h-[calc(100dvh-var(--header-h))] lg:pt-12">
@@ -159,6 +228,7 @@ export default function Portfolio() {
           <SelectedWorks />
         </div>
       </main>
+      )}
       </div>
 
       <Ruler side="left" show={show} offset={SIDEBAR_WIDTH} />
@@ -169,6 +239,8 @@ export default function Portfolio() {
           <SettingsPanel settings={settings} onChange={updateSettings} onClose={closeSettings} />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>{covering && <GrainTransition />}</AnimatePresence>
 
       {stage !== 'gone' && <Preloader onDone={setStage} />}
     </div>

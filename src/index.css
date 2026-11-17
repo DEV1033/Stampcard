@@ -33,3 +33,21 @@ body {
     font-weight: 400;
   }
 }
+
+/* Page transition grain: jumps around in steps so it flickers like film. */
+@keyframes grain-jitter {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-6%, 4%); }
+  40% { transform: translate(5%, -7%); }
+  60% { transform: translate(-3%, 8%); }
+  80% { transform: translate(7%, 2%); }
+  100% { transform: translate(-4%, -5%); }
+}
+.grain-jitter {
+  animation: grain-jitter 0.5s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .grain-jitter {
+    animation: none;
+  }
+}
