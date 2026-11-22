@@ -1,35 +1,74 @@
 @import "tailwindcss";
 
 @theme {
-  /* Geist and Averia Serif Libre from Google Fonts (linked in index.html). */
+  /* Geist, Averia Serif Libre and Fira Code from Google Fonts (linked in index.html). */
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Averia Serif Libre", Georgia, "Times New Roman", serif;
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  --color-ink: #0b1b2b;
-  --color-paper: #ffffff;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+:root {
+  --paper: #f1ece3;
+  --card: #fffdf9;
+  --ink: #2f2620;
+  --muted: #9b8f82;
+  --line-soft: #e4dacb;
+  --select: #c9e4ee;
 }
 
 body {
   margin: 0;
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Display text stays regular weight. */
-@layer base {
-  .font-display {
-    font-weight: 400;
+/* Medium grid tiles (40px) with subtle strokes, under a paper grain */
+.paper {
+  --grid: rgba(74, 59, 46, 0.09);
+  background-color: var(--paper);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.29 0 0 0 0 0.23 0 0 0 0 0.18 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 240px 240px, 40px 40px, 40px 40px;
+  background-position: 0 0, center top, center top;
+}
+
+.tile {
+  filter: drop-shadow(1px 2px 1.5px rgba(52, 57, 64, 0.18));
+}
+
+.caret {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Letter tiles drift gently, each slightly out of step */
+.float {
+  animation: float 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1.2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret,
+  .float {
+    animation: none;
   }
 }
