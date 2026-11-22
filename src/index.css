@@ -50,25 +50,26 @@ body {
   }
 }
 
-/* Letter tiles drift gently, each slightly out of step */
-.float {
-  animation: float 4s ease-in-out infinite;
-  will-change: transform;
+/* Picking up a letter sticker: it lifts toward you with a deeper shadow */
+.sticker-lift {
+  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-6px) rotate(1.2deg);
-  }
+.sticker-lift .tile {
+  transition: filter 160ms ease;
+}
+.sticker-lift.is-lifted {
+  transform: scale(1.08) rotate(-2deg);
+}
+.sticker-lift.is-lifted .tile {
+  filter: drop-shadow(4px 12px 9px rgba(52, 57, 64, 0.28));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .caret,
-  .float {
+  .caret {
     animation: none;
+  }
+  .sticker-lift,
+  .sticker-lift .tile {
+    transition: none;
   }
 }

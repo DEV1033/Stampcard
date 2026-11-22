@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import { Mic, ScanSearch } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Mic, RotateCcw, ScanSearch, Volume2, VolumeX } from 'lucide-react'
 import KeyboardScene from './KeyboardScene.jsx'
 import PixelGrid from './PixelGrid.jsx'
+import StickerName from './sticker/StickerName.jsx'
+import { playKey, unlockSound } from './keySound.js'
 
 const PHRASES = ['Creative Designer', 'Tech Oriented', 'AI Assisted Design']
 
-// Collage tiles cut from the ransom-letter SVG. Repeated letters get their own tilt/offset.
+// Collage stickers cut from the ransom-letter SVG. Repeated letters get their own tilt/offset.
 const WORDS = [
   [
     { l: 'D', r: -4, y: 2 },
@@ -32,8 +34,54 @@ const shiftFor = (ch) => (LEFT_HAND.has(ch.toLowerCase()) ? 'shiftR' : 'shiftL')
 
 export default function App() {
   const kb = useRef(null)
+  const stickers = useRef(null)
   const [text, setText] = useState('')
   const [selected, setSelected] = useState(false)
+
+  // Key click sound: on by default, remembered per visitor. Browsers need one gesture first.
+  const [soundOn, setSoundOn] = useState(() => {
+    try {
+      return localStorage.getItem('kb-sound') !== 'off'
+    } catch {
+      return true
+    }
+  })
+  const [unlocked, setUnlocked] = useState(false)
+  const soundOnRef = useRef(soundOn)
+  soundOnRef.current = soundOn
+
+  useEffect(() => {
+    const onGesture = (e) => {
+      if (e.target?.closest?.('[data-sound-toggle]')) return // the button handles itself
+      if (soundOnRef.current && unlockSound()) setUnlocked(true)
+    }
+    window.addEventListener('pointerdown', onGesture)
+    window.addEventListener('keydown', onGesture)
+    return () => {
+      window.removeEventListener('pointerdown', onGesture)
+      window.removeEventListener('keydown', onGesture)
+    }
+  }, [])
+
+  const toggleSound = () => {
+    // Sound is on but the browser hasn't allowed audio yet: this tap just starts it.
+    if (soundOn && !unlocked) {
+      if (unlockSound()) setUnlocked(true)
+      return
+    }
+    const next = !soundOn
+    setSoundOn(next)
+    if (next && unlockSound()) setUnlocked(true)
+    try {
+      localStorage.setItem('kb-sound', next ? 'on' : 'off')
+    } catch {
+      /* storage unavailable: setting just won't persist */
+    }
+  }
+
+  const onKeyDown = useCallback((id) => {
+    if (soundOnRef.current) playKey(id)
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -68,28 +116,34 @@ export default function App() {
   return (
     <main className="paper relative isolate flex min-h-dvh flex-col items-center justify-center py-10 md:justify-start md:pb-0 md:pt-[clamp(40px,10vh,120px)]">
       <PixelGrid />
-      <h1 className="flex flex-col items-center gap-[clamp(6px,1.4vw,16px)] px-2.5">
-        <span className="sr-only">Dev Chaudhary</span>
-        {WORDS.map((word, w) => (
-          <span key={w} className="flex items-center" aria-hidden="true">
-            {word.map((t, i) => (
-              <span
-                key={i}
-                className="float -mx-[0.5%] block"
-                style={{ animationDelay: `${-((w * 3 + i) * 0.73) % 4.2}s`, animationDuration: `${3.6 + ((i * 7 + w) % 5) * 0.3}s` }}
-              >
-                <img
-                  src={`/letters/${t.l}.svg`}
-                  alt=""
-                  draggable="false"
-                  className="tile block h-[min(calc((100vw-20px)/6.7),96px)] lg:h-[84px] w-auto select-none"
-                  style={{ transform: `translateY(${t.y}px) rotate(${t.r}deg) scale(${t.s ?? 1})` }}
-                />
-              </span>
-            ))}
+      <div className="fixed right-3 top-3 z-10 flex items-center gap-2 md:right-5 md:top-5">
+        {soundOn && !unlocked && (
+          <span className="rounded-full border border-[var(--line-soft)] bg-[var(--card)] px-3 py-1.5 font-mono text-[12px] text-[var(--muted)] shadow-sm">
+            Tap anywhere for sound
           </span>
-        ))}
-      </h1>
+        )}
+        <button
+          type="button"
+          onClick={() => stickers.current?.reset()}
+          aria-label="Put the name letters back in place"
+          title="Put letters back"
+          className="grid h-10 w-10 place-items-center rounded-full border border-[var(--line-soft)] bg-[var(--card)] text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+        >
+          <RotateCcw size={17} strokeWidth={1.7} />
+        </button>
+        <button
+          type="button"
+          data-sound-toggle
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          aria-label={soundOn ? 'Mute keyboard sound' : 'Turn on keyboard sound'}
+          title={soundOn ? 'Mute keyboard sound' : 'Turn on keyboard sound'}
+          className="grid h-10 w-10 place-items-center rounded-full border border-[var(--line-soft)] bg-[var(--card)] text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+        >
+          {soundOn ? <Volume2 size={18} strokeWidth={1.7} /> : <VolumeX size={18} strokeWidth={1.7} />}
+        </button>
+      </div>
+      <StickerName ref={stickers} words={WORDS} label="Dev Chaudhary" sizeClass="h-[min(calc((100vw-20px)/6.7),96px)] lg:h-[84px]" />
 
       <div className="mt-[clamp(28px,6vh,56px)] w-full max-w-[632px] px-4">
         <p className="sr-only">Creative Designer, Tech Oriented, AI Assisted Design</p>
@@ -107,7 +161,7 @@ export default function App() {
       </div>
 
       <div className="relative mt-3 aspect-[5/4] max-h-[62vh] w-full [mask-image:linear-gradient(to_bottom,black_72%,transparent)] md:aspect-auto md:max-h-none md:min-h-[380px] md:flex-1 md:[mask-image:none]">
-        <KeyboardScene ref={kb} />
+        <KeyboardScene ref={kb} onKeyDown={onKeyDown} />
       </div>
     </main>
   )

@@ -409,8 +409,10 @@ function addSkinAttribute(mesh, bone, palmN) {
   g.setAttribute('aSkin', new THREE.BufferAttribute(data, 3))
 }
 
-const KeyboardScene = forwardRef(function KeyboardScene(_, ref) {
+const KeyboardScene = forwardRef(function KeyboardScene({ onKeyDown }, ref) {
   const mountRef = useRef(null)
+  const onKeyDownRef = useRef(onKeyDown)
+  onKeyDownRef.current = onKeyDown
   const keysRef = useRef(new Map())
   const fingersRef = useRef(new Map())
 
@@ -698,12 +700,13 @@ const KeyboardScene = forwardRef(function KeyboardScene(_, ref) {
       const dt = Math.min(clock.getDelta(), 0.05)
       const now = performance.now() / 1000
 
-      keysRef.current.forEach((k) => {
+      keysRef.current.forEach((k, id) => {
         if (k.pending > 0) {
           k.pending -= dt
           if (k.pending <= 0) {
             k.t = 1
             k.hold = 0.12
+            onKeyDownRef.current?.(id)
           }
         } else if (k.hold > 0) k.hold -= dt
         else if (k.t > 0) k.t = Math.max(0, k.t - dt * 3.2)
